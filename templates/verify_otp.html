@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify OTP — InvenTrack{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="auth-logo">📧</span>
+            <h1>Enter OTP</h1>
+            <p>A 6-digit verification code has been sent to your email.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" class="auth-form">
+            <div class="form-group">
+                <label for="otp">One-Time Password</label>
+                <div class="input-icon-wrapper">
+                    <span class="field-icon">🔑</span>
+                    <input type="text" id="otp" name="otp" placeholder="123456" maxlength="6" pattern="\d{6}" required style="text-align: center; letter-spacing: 8px; font-size: 20px;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary btn-full">Verify & Activate →</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

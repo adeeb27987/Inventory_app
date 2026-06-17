@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — InvenTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Dashboard</h2>
+        <p class="page-subtitle">Manage your inventory efficiently</p>
+    </div>
+    <a href="{{ url_for('product.add_product') }}" class="btn-primary">+ Add Product</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-label">Total Products</span>
+        <h2 class="stat-value">{{ total_products }}</h2>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Inventory Value</span>
+        <h2 class="stat-value" style="color: var(--accent);">৳{{ "{:,.0f}".format(total_value) }}</h2>
+    </div>
+    <div class="stat-card stat-warning">
+        <span class="stat-label">Low Stock Alerts</span>
+        <h2 class="stat-value" style="color: var(--warning);">{{ low_stock_count }}</h2>
+    </div>
+</div>
+
+<div class="chart-container" style="background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; height: 300px;">
+    <h3 style="color: var(--text); font-size: 16px; margin-bottom: 15px;">Stock Distribution</h3>
+    <canvas id="inventoryChart"></canvas>
+</div>
+
+<div class="table-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: var(--text);">📦 Current Inventory</h3>
+        <a href="{{ url_for('product.export_excel') }}" class="btn-ghost">📥 Export to Excel</a>
+    </div>
+
+    {% if products %}
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td class="product-name">{{ product.name }}</td>
+                    <td><span class="qty {% if product.quantity < 5 %}qty-low{% endif %}">{{ product.quantity }}</span></td>
+                    <td>৳{{ "{:,.2f}".format(product.price) }}</td>
+                    <td>৳{{ "{:,.2f}".format(product.price * product.quantity) }}</td>
+                    <td style="text-align: right;">
+                        <div class="action-btns" style="justify-content: flex-end;">
+                            <form method="POST" action="{{ url_for('product.buy_product', id=product.id) }}">
+                                <button type="submit" class="btn-secondary" style="background: var(--success); color: white; border: none;">Buy</button>
+                            </form>
+                            {% if product.user_id == current_user.id %}
+                                <a href="{{ url_for('product.edit_product', id=product.id) }}" class="btn-edit">Edit</a>
+                                <form method="POST" action="{{ url_for('product.delete_product', id=product.id) }}" onsubmit="return confirm('Delete this?');">
+                                    <button type="submit" class="btn-delete">Delete</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">📦</span>
+        <h3>No products found</h3>
+        <p>Start by adding your first product.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+        
+        // Flask থেকে ডাটা সংগ্রহ
+        const labels = {{ products | map(attribute='name') | list | tojson }};
+        const data = {{ products | map(attribute='quantity') | list | tojson }};
+
+        // চার্ট জেনারেশন
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Quantity',
+                    data: data,
+                    backgroundColor: '#4f8ef7',
+                    barPercentage: 0.2
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false } 
+                }
+            }
+        }); // new Chart এর ক্লোজিং ব্র্যাকেট
+    }); // DOMContentLoaded এর ক্লোজিং ব্র্যাকেট
+</script>
+{% endblock %}
