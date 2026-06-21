@@ -8,4 +8,5 @@ class Purchase(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
     buyer_name = db.Column(db.String(50), nullable=False) # 👈 এটা আছে তো?
+    payment_method = db.Column(db.String(20), nullable=True)
     purchased_at = db.Column(db.DateTime, default=datetime.utcnow)

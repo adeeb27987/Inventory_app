@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Suppliers — InvenTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">🏭 Suppliers</h2>
+        <p class="page-subtitle">Manage your product suppliers</p>
+    </div>
+    <a href="{{ url_for('supplier.add_supplier') }}" class="btn-primary">+ Add Supplier</a>
+</div>
+
+{% if suppliers %}
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Supplier</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Products</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in suppliers %}
+            <tr>
+                <td>
+                    <div style="font-weight:600;">{{ s.company_name }}</div>
+                    {% if s.address %}
+                        <div style="font-size:12px; color:var(--text-muted);">{{ s.address }}</div>
+                    {% endif %}
+                </td>
+                <td>{{ s.contact_person or '—' }}</td>
+                <td>
+                    {% if s.email %}
+                        <a href="mailto:{{ s.email }}" style="color:var(--accent);">{{ s.email }}</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ s.phone or '—' }}</td>
+                <td>
+                    <span class="badge">{{ s.products | length }} products</span>
+                </td>
+                <td>
+                    <div class="action-btns">
+                        <a href="{{ url_for('supplier.edit_supplier', id=s.id) }}" class="btn-edit">Edit</a>
+                        <form method="POST" action="{{ url_for('supplier.delete_supplier', id=s.id) }}"
+                              onsubmit="return confirm('Delete {{ s.company_name }}?')">
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="table-card">
+    <div class="empty-state">
+        <span class="empty-icon">🏭</span>
+        <h3>No suppliers yet</h3>
+        <p>Add your first supplier to get started.</p>
+        <a href="{{ url_for('supplier.add_supplier') }}" class="btn-primary">+ Add Supplier</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

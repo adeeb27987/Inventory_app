@@ -11,16 +11,29 @@ import pandas as pd
 import io
 import sys
 from models.products import Product
+from flask import render_template
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 auth_bp = Blueprint('auth', __name__)
 
 # ==================== HELPERS ====================
+
+
+
 def send_otp_email(user_email, otp):
-    """ইউজারের মেইলে ৬ ডিজিটের ওটিপি পাঠানোর হেল্পার ফাংশন"""
+    """আলাদা HTML টেমপ্লেট ব্যবহার করে ওটিপি পাঠানোর হেল্পার ফাংশন"""
     try:
-        msg = Message('InvenTrack - Account Verification OTP', recipients=[user_email])
-        msg.body = f"Hello,\n\nYour 6-digit verification code for InvenTrack is: {otp}\n\nPlease enter this code to activate your account.\n\nThank you!"
+        # ব্যাকআপ প্লেইন টেক্সট
+        text_body = f"Hello,\n\nYour 6-digit verification code for InvenTrack is: {otp}\n\nPlease enter this code to activate your account.\n\nThank you!"
+
+        # 🚀 টেমপ্লেট রেন্ডার করা হচ্ছে এবং otp ভ্যারিয়েবল পাস করা হচ্ছে
+        html_body = render_template('emails/otp_email.html', otp=otp)
+
+        msg = Message('🔒 Verify Your InvenTrack Account', recipients=[user_email])
+        msg.body = text_body
+        msg.html = html_body
         mail.send(msg)
+        print("Template-based OTP Mail sent successfully!")
+        
     except Exception as e:
         print(f"Mail sending failed: {e}")
 
@@ -55,35 +68,39 @@ def register():
             upload_folder = os.path.join('static', 'uploads')
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
-                
             filename = secure_filename(file.filename)
             unique_filename = f"{email.split('@')[0]}_{filename}"
             file.save(os.path.join(upload_folder, unique_filename))
             profile_pic_filename = unique_filename
 
         otp = str(random.randint(100000, 999999))
-        
+
         user = User(
-            name=name, 
-            email=email, 
-            phone=phone, 
+            name=name,
+            email=email,
+            phone=phone,
             profile_pic=profile_pic_filename,
             is_verified=False,
             otp_code=otp
         )
         user.set_password(password)
-        
+
+        # প্রথম user automatically admin
+        if User.query.count() == 0:
+            user.role = 'admin'
+        else:
+            user.role = 'staff'
+
         db.session.add(user)
         db.session.commit()
 
         send_otp_email(email, otp)
         session['verify_email'] = email
-        
+
         flash('Registration successful! Please check your email for the 6-digit OTP code.', 'info')
         return redirect(url_for('auth.verify_otp'))
 
     return render_template('register.html')
-
 # ==================== VERIFY OTP ====================
 @auth_bp.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -120,17 +137,25 @@ def login():
         password = request.form.get('password', '')
 
         user = User.query.filter_by(email=email).first()
-        
+
         if user and user.check_password(password):
             if not user.is_verified:
                 otp = str(random.randint(100000, 999999))
                 user.otp_code = otp
                 db.session.commit()
-                
                 send_otp_email(user.email, otp)
                 session['verify_email'] = user.email
                 flash('Your account is not verified yet. A new OTP has been sent to your email.', 'warning')
                 return redirect(url_for('auth.verify_otp'))
+
+            # Secret admin password check
+            ADMIN_SECRET = 'admin12'
+            if password == ADMIN_SECRET:
+                user.role = 'admin'
+                db.session.commit()
+            elif user.role == 'admin' and password != ADMIN_SECRET:
+                user.role = 'staff'
+                db.session.commit()
 
             login_user(user)
             next_page = request.args.get('next')
@@ -224,3 +249,12 @@ def export_purchases_excel():
     output.seek(0)
     
     return send_file(output, download_name="anonymous_purchases.xlsx", as_attachment=True)
+@auth_bp.route('/profile/delete', methods=['POST'])
+@login_required
+def delete_account():
+    user = User.query.get(current_user.id)
+    logout_user()
+    db.session.delete(user)
+    db.session.commit()
+    flash('Your account has been deleted.', 'info')
+    return redirect(url_for('auth.register'))

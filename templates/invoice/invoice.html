@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Invoice #{{ purchase.id }} — InvenTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">🧾 Invoice</h2>
+        <p class="page-subtitle">Invoice #{{ purchase.id }}</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button onclick="window.print()" class="btn-secondary">🖨️ Print</button>
+        <a href="{{ url_for('invoice.download_pdf', id=purchase.id) }}" class="btn-primary">📥 Download PDF</a>
+    </div>
+</div>
+
+<!-- Invoice Card -->
+<div id="invoiceCard" style="background:white; color:#1a1a2e; border-radius:12px; padding:40px; max-width:750px; margin:0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px;">
+        <div>
+            <div style="font-size:28px; font-weight:800; color:#4f8ef7; letter-spacing:-1px;">📦 InvenTrack</div>
+            <div style="font-size:13px; color:#666; margin-top:4px;">Inventory Management System</div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:22px; font-weight:700; color:#1a1a2e;">INVOICE</div>
+            <div style="font-size:14px; color:#666;">#{{ "%05d" | format(purchase.id) }}</div>
+            <div style="font-size:13px; color:#888; margin-top:4px;">{{ purchase.purchased_at.strftime('%d %B %Y') }}</div>
+        </div>
+    </div>
+
+    <!-- From / To -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:36px;">
+        <div>
+            <div style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">From</div>
+            <div style="font-weight:600; font-size:15px; color:#1a1a2e;">{{ seller.name }}</div>
+            <div style="font-size:13px; color:#666;">{{ seller.email }}</div>
+            {% if seller.phone %}
+                <div style="font-size:13px; color:#666;">{{ seller.phone }}</div>
+            {% endif %}
+        </div>
+        <div>
+            <div style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">To</div>
+            <div style="font-weight:600; font-size:15px; color:#1a1a2e;">{{ purchase.buyer_name }}</div>
+            <div style="font-size:13px; color:#666;">Customer</div>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <table style="width:100%; border-collapse:collapse; margin-bottom:32px;">
+        <thead>
+            <tr style="background:#f8f9fa; border-bottom:2px solid #e9ecef;">
+                <th style="padding:12px 16px; text-align:left; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:0.5px;">Product</th>
+                <th style="padding:12px 16px; text-align:center; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:0.5px;">Qty</th>
+                <th style="padding:12px 16px; text-align:right; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:0.5px;">Unit Price</th>
+                <th style="padding:12px 16px; text-align:right; font-size:12px; color:#666; text-transform:uppercase; letter-spacing:0.5px;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="border-bottom:1px solid #f0f0f0;">
+                <td style="padding:16px; font-weight:500; color:#1a1a2e;">{{ purchase.product_name }}</td>
+                <td style="padding:16px; text-align:center; color:#444;">{{ purchase.quantity }}</td>
+                <td style="padding:16px; text-align:right; color:#444;">৳{{ "{:,.2f}".format(purchase.price) }}</td>
+                <td style="padding:16px; text-align:right; font-weight:600; color:#1a1a2e;">৳{{ "{:,.2f}".format(purchase.price * purchase.quantity) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Total -->
+    <div style="display:flex; justify-content:flex-end;">
+        <div style="width:260px;">
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; font-size:14px; color:#666;">
+                <span>Subtotal</span>
+                <span>৳{{ "{:,.2f}".format(purchase.price * purchase.quantity) }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; font-size:14px; color:#666;">
+                <span>Tax (0%)</span>
+                <span>৳0.00</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:14px 0; font-size:18px; font-weight:700; color:#1a1a2e;">
+                <span>Total</span>
+                <span style="color:#4f8ef7;">৳{{ "{:,.2f}".format(purchase.price * purchase.quantity) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top:40px; padding-top:20px; border-top:1px solid #eee; text-align:center; font-size:12px; color:#999;">
+        Thank you for your business! — Generated by InvenTrack
+    </div>
+</div>
+
+<style>
+@media print {
+    .sidebar, .page-header, .main-content > div:first-child { display: none !important; }
+    .main-content { margin-left: 0 !important; padding: 0 !important; }
+    #invoiceCard { box-shadow: none !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel — InvenTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">🛡️ Admin Panel</h2>
+        <p class="page-subtitle">Manage users, products, and system</p>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="stats-grid" style="grid-template-columns: repeat(4,1fr); margin-bottom:24px;">
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ total_users }}</span>
+            <span class="stat-label">Total Users</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ total_products }}</span>
+            <span class="stat-label">Total Products</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🧾</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ total_orders }}</span>
+            <span class="stat-label">Total Orders</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+            <span class="stat-value">৳{{ "{:,.0f}".format(total_sales) }}</span>
+            <span class="stat-label">Total Revenue</span>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="table-card" style="margin-bottom: 24px;">
+    <div style="padding: 20px 20px 0; margin-bottom:16px;">
+        <h3 style="font-size:15px;">👥 All Users</h3>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}"
+                             style="width:32px;height:32px;border-radius:50%;object-fit:cover;"
+                             onerror="this.src='https://ui-avatars.com/api/?name={{ user.name|urlencode }}&background=4f8ef7&color=fff'">
+                        <span>{{ user.name }}</span>
+                        {% if user.id == current_user.id %}
+                            <span style="font-size:11px;color:var(--accent);">(You)</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.phone or '—' }}</td>
+                <td>
+                    <span class="badge" style="{{ 'background:rgba(239,68,68,0.1);color:#ef4444;' if user.role == 'admin' else '' }}">
+                        {{ user.role }}
+                    </span>
+                </td>
+                <td>{{ user.created_at.strftime('%d %b %Y') }}</td>
+                <td>
+                    <div class="action-btns">
+                        {% if user.id != current_user.id %}
+                        <form method="POST" action="{{ url_for('admin.change_role', id=user.id) }}">
+                            <select name="role" onchange="this.form.submit()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:12px;">
+                                <option value="staff" {{ 'selected' if user.role == 'staff' }}>Staff</option>
+                                <option value="admin" {{ 'selected' if user.role == 'admin' }}>Admin</option>
+                            </select>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.delete_user', id=user.id) }}"
+                              onsubmit="return confirm('Delete {{ user.name }}?')">
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Products Table -->
+<div class="table-card">
+    <div style="padding: 20px 20px 0; margin-bottom:16px;">
+        <h3 style="font-size:15px;">📦 All Products</h3>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Owner</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr class="{{ 'row-warning' if product.quantity < 5 }}">
+                <td><strong>{{ product.name }}</strong></td>
+                <td><span class="badge">{{ product.category }}</span></td>
+                <td>{{ product.quantity }}</td>
+                <td>৳{{ "{:,.0f}".format(product.price) }}</td>
+                <td>{{ product.user_id }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.force_delete_product', id=product.id) }}"
+                          onsubmit="return confirm('Delete?')">
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

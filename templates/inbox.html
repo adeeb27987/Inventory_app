@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Inbox — InvenTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">💬 Inbox</h2>
+        <p class="page-subtitle">Messages from buyers</p>
+    </div>
+</div>
+
+<div class="table-card" style="padding:0; overflow:hidden;">
+    {% if conversations %}
+    <div id="convList">
+        {% for conv in conversations %}
+        <div class="conv-row" data-other-id="{{ conv.other_user.id }}"
+             onclick="openThread({{ conv.other_user.id }}, '{{ conv.other_user.name|e }}', '{{ url_for('static', filename='uploads/' + conv.other_user.profile_pic) }}')"
+             style="display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border-color, #2a2a3a); cursor:pointer;">
+
+            <img src="{{ url_for('static', filename='uploads/' + conv.other_user.profile_pic) }}"
+                 style="width:42px; height:42px; border-radius:50%; object-fit:cover; flex-shrink:0;"
+                 onerror="this.src='https://ui-avatars.com/api/?name={{ conv.other_user.name|urlencode }}&background=4f8ef7&color=fff'">
+
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+                    <span style="font-weight:600;">{{ conv.other_user.name }}</span>
+                    <span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">{{ conv.last_message.created_at.strftime('%d %b, %H:%M') }}</span>
+                </div>
+                <div style="font-size:13px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {% if conv.last_message.sender_id == current_user.id %}You: {% endif %}{{ conv.last_message.content }}
+                </div>
+            </div>
+
+            {% if conv.unread_count > 0 %}
+            <span class="unread-badge" style="background:#ef4444; color:white; border-radius:10px; padding:2px 8px; font-size:11px; flex-shrink:0;">{{ conv.unread_count }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">💬</span>
+        <h3>No messages yet</h3>
+        <p>When buyers message you, they'll appear here.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

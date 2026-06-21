@@ -13,7 +13,8 @@ class Product(db.Model):
     description = db.Column(db.String(255))
     date_added = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
+    is_active = db.Column(db.Boolean, default=True)
+    photo = db.Column(db.String(256), default='default_product.png')
     @property
     def is_low_stock(self):
         return self.quantity < 5

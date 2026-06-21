@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }} — InvenTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">{{ product.name }}</h2>
+        <p class="page-subtitle">{{ product.category }}</p>
+    </div>
+    <a href="{{ url_for('product.index') }}" class="btn-ghost">← Back</a>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px;">
+
+    <!-- Product Info -->
+    <div class="form-card">
+        <div style="text-align:center; margin-bottom:24px;">
+            {% if product.photo and product.photo != 'default_product.png' %}
+                <img src="{{ url_for('static', filename='uploads/' + product.photo) }}"
+                     style="width:200px; height:200px; object-fit:cover; border-radius:12px; border:2px solid var(--border);">
+            {% else %}
+                <div style="width:200px; height:200px; background:var(--surface2); border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto; font-size:64px;">📦</div>
+            {% endif %}
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Product</span>
+            <span class="detail-value">{{ product.name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Category</span>
+            <span class="detail-value"><span class="badge">{{ product.category }}</span></span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Price</span>
+            <span class="detail-value" style="color:var(--accent); font-size:20px; font-weight:700;">৳{{ "{:,.2f}".format(product.price) }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Stock</span>
+            <span class="detail-value">
+                <span class="qty {% if product.quantity < 5 %}qty-low{% endif %}">{{ product.quantity }} units</span>
+            </span>
+        </div>
+        {% if product.description %}
+        <div class="detail-row">
+            <span class="detail-label">Description</span>
+            <span class="detail-value">{{ product.description }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Buy -->
+        {% if product.user_id != current_user.id %}
+        <div style="margin-top:24px;">
+            <form method="POST" action="{{ url_for('product.buy_product', id=product.id) }}">
+                <input type="hidden" name="payment_method" value="">
+                <button type="button" class="btn-primary btn-full"
+                        onclick="openBuyModal(this.closest('form'), '{{ product.name|e }}', {{ product.price }})">
+                    💳 Buy Now — ৳{{ "{:,.2f}".format(product.price) }}
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div style="margin-top:24px;">
+            <a href="{{ url_for('product.edit_product', id=product.id) }}" class="btn-primary btn-full">✏️ Edit Product</a>
+        </div>
+        {% endif %}
+
+        <!-- Admin Delete -->
+        {% if current_user.is_admin and product.user_id != current_user.id %}
+        <div style="margin-top:12px;">
+            <form method="POST" action="{{ url_for('product.delete_product', id=product.id) }}"
+                  onsubmit="return confirm('Force delete this product?')">
+                <button type="submit" class="btn-delete" style="width:100%; padding:10px;">🗑️ Admin: Delete Product</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Owner Info + Message -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <!-- Owner Card -->
+        <div class="form-card">
+            <h3 style="font-size:15px; margin-bottom:16px;">👤 Seller Info</h3>
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+                <img src="{{ url_for('static', filename='uploads/' + owner.profile_pic) }}"
+                     style="width:56px; height:56px; border-radius:50%; object-fit:cover;"
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ owner.name|urlencode }}&background=4f8ef7&color=fff'">
+                <div>
+                    <div style="font-weight:600; font-size:15px;">{{ owner.name }}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">{{ owner.email }}</div>
+                    {% if owner.phone %}
+                        <div style="font-size:12px; color:var(--text-muted);">📱 {{ owner.phone }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Seller -->
+        {% if product.user_id != current_user.id %}
+        <div class="form-card">
+            <h3 style="font-size:15px; margin-bottom:10px;">💬 Contact Seller</h3>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">Have a question about this product? Message the seller directly.</p>
+            <button type="button" class="btn-primary btn-full"
+                    onclick="openThread({{ owner.id }}, '{{ owner.name|e }}', '{{ url_for('static', filename='uploads/' + owner.profile_pic) }}', {{ product.id }})">
+                💬 Message Seller
+            </button>
+        </div>
+        <!-- QR Code -->
+        <div style="text-align:center; margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">📱 Scan to view this product</p>
+            <img src="{{ url_for('qr.product_qr', id=product.id) }}"
+                 style="width:140px; height:140px; border-radius:8px; background:white; padding:8px;">
+            <div style="margin-top:8px;">
+                <a href="{{ url_for('qr.product_qr', id=product.id) }}" download="qr_{{ product.name }}.png"
+                   style="font-size:12px; color:var(--accent);">⬇ Download QR</a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,117 +1,249 @@
 {% extends 'base.html' %}
-
 {% block title %}Dashboard — InvenTrack{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h2 class="page-title">Dashboard</h2>
-        <p class="page-subtitle">Manage your inventory efficiently</p>
-    </div>
-    <a href="{{ url_for('product.add_product') }}" class="btn-primary">+ Add Product</a>
-</div>
+{% if total_products == 0 %}
+    <!-- ==================================================================== -->
+    <!-- 📦 আপনার দেওয়া EMPTY DASHBOARD লেআউট -->
+    <!-- ==================================================================== -->
+    <div class="empty-dashboard">
+        <div class="empty-dashboard-icon">📦</div>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <span class="stat-label">Total Products</span>
-        <h2 class="stat-value">{{ total_products }}</h2>
-    </div>
-    <div class="stat-card">
-        <span class="stat-label">Inventory Value</span>
-        <h2 class="stat-value" style="color: var(--accent);">৳{{ "{:,.0f}".format(total_value) }}</h2>
-    </div>
-    <div class="stat-card stat-warning">
-        <span class="stat-label">Low Stock Alerts</span>
-        <h2 class="stat-value" style="color: var(--warning);">{{ low_stock_count }}</h2>
-    </div>
-</div>
+        <h2>Welcome to InvenTrack</h2>
 
-<div class="chart-container" style="background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; height: 300px;">
+        <p>
+            Your inventory is currently empty. Add your first product to start
+            tracking inventory, stock levels, and sales performance.
+        </p>
+
+        <a href="{{ url_for('product.add_product') }}" class="btn-primary" style="text-decoration: none;">
+            + Add First Product
+        </a>
+
+        <div class="onboarding-grid">
+            <div class="step-card">
+                <div class="step-icon">📦</div>
+                <h4>Add Products</h4>
+                <p>Create your inventory items.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-icon">📊</div>
+                <h4>Track Inventory</h4>
+                <p>Monitor quantity and value.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-icon">⚠️</div>
+                <h4>Low Stock Alerts</h4>
+                <p>Get notified before stock runs out.</p>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- ==================================================================== -->
+    <!-- 📊 আপনার অরিজিনাল একটিভ ড্যাশবোর্ড (যা ছবিতে দেখা যাচ্ছে, ১% ও বদলানো হয়নি) -->
+    <!-- ==================================================================== -->
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">Dashboard</h2>
+            <p class="page-subtitle">Manage your inventory efficiently</p>
+        </div>
+        <a href="{{ url_for('product.add_product') }}" class="btn-primary">+ Add Product</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Total Products</span>
+            <h2 class="stat-value">{{ total_products }}</h2>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Inventory Value</span>
+            <h2 class="stat-value" style="color: var(--accent);">৳{{ "{:,.0f}".format(total_value) }}</h2>
+        </div>
+        <div class="stat-card stat-warning">
+            <span class="stat-label">Low Stock Alerts</span>
+            <h2 class="stat-value" style="color: var(--warning);">{{ low_stock_count }}</h2>
+        </div>
+    </div>
+    <!-- Search & Filter Bar -->
+    <div class="form-card" style="margin-bottom:20px; padding:18px;">
+        <form method="GET" action="{{ url_for('product.index') }}" style="display:grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 1.2fr 1.2fr auto; gap:12px; align-items:end;">
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Search</label>
+                <input type="text" name="search" value="{{ search }}" placeholder="Product name...">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Category</label>
+                <select name="category" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px 14px; font-size:14px; outline:none; width:100%;">
+                    <option value="">All</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {{ 'selected' if selected_category == cat }}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Min ৳</label>
+                <input type="number" name="min_price" value="{{ min_price }}" placeholder="0">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Max ৳</label>
+                <input type="number" name="max_price" value="{{ max_price }}" placeholder="∞">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Stock</label>
+                <select name="stock" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px 14px; font-size:14px; outline:none; width:100%;">
+                    <option value="">All</option>
+                    <option value="in" {{ 'selected' if stock_filter == 'in' }}>In Stock</option>
+                    <option value="low" {{ 'selected' if stock_filter == 'low' }}>Low Stock</option>
+                    <option value="out" {{ 'selected' if stock_filter == 'out' }}>Out of Stock</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Sort By</label>
+                <select name="sort" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px 14px; font-size:14px; outline:none; width:100%;">
+                    <option value="newest" {{ 'selected' if sort_by == 'newest' }}>Newest</option>
+                    <option value="price_low" {{ 'selected' if sort_by == 'price_low' }}>Price: Low-High</option>
+                    <option value="price_high" {{ 'selected' if sort_by == 'price_high' }}>Price: High-Low</option>
+                    <option value="name" {{ 'selected' if sort_by == 'name' }}>Name A-Z</option>
+                    <option value="stock_low" {{ 'selected' if sort_by == 'stock_low' }}>Stock: Low-High</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn-primary" style="white-space:nowrap;">🔍 Filter</button>
+            </div>
+        </form>
+
+        {% if search or selected_category or min_price or max_price or stock_filter %}
+        <div style="margin-top:12px;">
+            <a href="{{ url_for('product.index') }}" class="btn-ghost" style="font-size:12px;">✕ Clear All Filters</a>
+        </div>
+        {% endif %}
+    </div>
+    <!-- Stock Alert Banner -->
+    <div id="alertBanner" style="display:none; background:rgba(245,158,11,0.1); border:1px solid #f59e0b; border-radius:10px; padding:16px 20px; margin-bottom:20px; justify-content:space-between; align-items:center; gap:12px;">
+        <div>
+            <span style="color:#f59e0b; font-weight:600;">⚠️ Low Stock Alert</span>
+            <span id="alertText" style="color:var(--text-muted); margin-left:10px; font-size:13px;"></span>
+        </div>
+        {% if current_user.is_admin %}
+        <button onclick="sendStockAlert()" style="padding:8px 16px; background:#f59e0b; color:#000; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px; white-space:nowrap;">
+            📧 Send Email Alert
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-container" style="background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; height: 300px; position: relative;">
     <h3 style="color: var(--text); font-size: 16px; margin-bottom: 15px;">Stock Distribution</h3>
-    <canvas id="inventoryChart"></canvas>
-</div>
+    <div style="position: relative; height: 230px; width: 100%;">
+        <canvas id="inventoryChart"></canvas>
+    </div>
+    </div>
+    <!-- Inventory Table -->
+    <div class="table-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text);">📦 Current Inventory</h3>
+            <a href="{{ url_for('product.export_excel') }}" class="btn-ghost">📥 Export to Excel</a>
+        </div>
 
-<div class="table-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="color: var(--text);">📦 Current Inventory</h3>
-        <a href="{{ url_for('product.export_excel') }}" class="btn-ghost">📥 Export to Excel</a>
+        {% if products %}
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td class="product-name">
+                            <a href="{{ url_for('product.product_detail', id=product.id) }}" style="color:var(--text); text-decoration:none; font-weight:500;">
+                                {{ product.name }}
+                            </a>
+                        </td>
+                        <td><span class="qty {% if product.quantity < 5 %}qty-low{% endif %}">{{ product.quantity }}</span></td>
+                        <td>৳{{ "{:,.2f}".format(product.price) }}</td>
+                        <td>৳{{ "{:,.2f}".format(product.price * product.quantity) }}</td>
+                        <td style="text-align: right;">
+                            <div class="action-btns" style="justify-content: flex-end;">
+                                {% if product.user_id == current_user.id %}
+                                    <a href="{{ url_for('product.edit_product', id=product.id) }}" class="btn-edit">Edit</a>
+                                    <form method="POST" action="{{ url_for('product.delete_product', id=product.id) }}" onsubmit="return confirm('Delete this?');">
+                                        <button type="submit" class="btn-delete">Delete</button>
+                                    </form>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('product.buy_product', id=product.id) }}">
+                                        <input type="hidden" name="payment_method" value="">
+                                        <button type="button" class="btn-secondary" style="background: var(--success); color: white; border: none;"
+                                                onclick="openBuyModal(this.closest('form'), '{{ product.name|e }}', {{ product.price }})">
+                                            Buy
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon">📦</span>
+            <h3>No products found</h3>
+            <p>Start by adding your first product.</p>
+        </div>
+        {% endif %}
     </div>
 
-    {% if products %}
-    <div style="overflow-x: auto;">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Qty</th>
-                    <th>Price</th>
-                    <th>Total</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                <tr>
-                    <td class="product-name">{{ product.name }}</td>
-                    <td><span class="qty {% if product.quantity < 5 %}qty-low{% endif %}">{{ product.quantity }}</span></td>
-                    <td>৳{{ "{:,.2f}".format(product.price) }}</td>
-                    <td>৳{{ "{:,.2f}".format(product.price * product.quantity) }}</td>
-                    <td style="text-align: right;">
-                        <div class="action-btns" style="justify-content: flex-end;">
-                            <form method="POST" action="{{ url_for('product.buy_product', id=product.id) }}">
-                                <button type="submit" class="btn-secondary" style="background: var(--success); color: white; border: none;">Buy</button>
-                            </form>
-                            {% if product.user_id == current_user.id %}
-                                <a href="{{ url_for('product.edit_product', id=product.id) }}" class="btn-edit">Edit</a>
-                                <form method="POST" action="{{ url_for('product.delete_product', id=product.id) }}" onsubmit="return confirm('Delete this?');">
-                                    <button type="submit" class="btn-delete">Delete</button>
-                                </form>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <span class="empty-icon">📦</span>
-        <h3>No products found</h3>
-        <p>Start by adding your first product.</p>
-    </div>
-    {% endif %}
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    // Stock Alert Check
+    fetch('/stock-alert/check')
+        .then(r => r.json())
+        .then(data => {
+            if (data.count > 0) {
+                const banner = document.getElementById('alertBanner');
+                banner.style.display = 'flex';
+                document.getElementById('alertText').textContent =
+                    `${data.count} product(s) running low: ${data.products.map(p => p.name).join(', ')}`;
+            }
+        });
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+    function sendStockAlert() {
+        fetch('/stock-alert/send', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => alert(data.message || data.error));
+    }
+
+    // Inventory Chart
     document.addEventListener("DOMContentLoaded", function() {
         const ctx = document.getElementById('inventoryChart').getContext('2d');
-        
-        // Flask থেকে ডাটা সংগ্রহ
         const labels = {{ products | map(attribute='name') | list | tojson }};
-        const data = {{ products | map(attribute='quantity') | list | tojson }};
-
-        // চার্ট জেনারেশন
+        const data   = {{ products | map(attribute='quantity') | list | tojson }};
         new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Quantity',
-                    data: data,
-                    backgroundColor: '#4f8ef7',
-                    barPercentage: 0.2
-                }]
+                datasets: [{ label: 'Quantity', data: data, backgroundColor: '#4f8ef7', barPercentage: 0.2 }]
             },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false } 
-                }
-            }
-        }); // new Chart এর ক্লোজিং ব্র্যাকেট
-    }); // DOMContentLoaded এর ক্লোজিং ব্র্যাকেট
-</script>
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    });
+    </script>
+{% endif %}
 {% endblock %}

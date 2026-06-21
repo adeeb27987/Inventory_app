@@ -26,14 +26,32 @@
             <a href="{{ url_for('product.add_product') }}" class="nav-link {% if request.endpoint == 'product.add_product' %}active{% endif %}">
                 <span class="nav-icon">➕</span> Add Product
             </a>
+            <a href="{{ url_for('product.inbox') }}" class="nav-link {% if request.endpoint == 'product.inbox' %}active{% endif %}">
+                <span class="nav-icon">💬</span> Messages
+                {% set unread = current_user.received_messages | selectattr('is_read', 'equalto', false) | list | length %}
+                {% if unread > 0 %}
+                    <span style="background:#ef4444; color:white; border-radius:10px; padding:1px 7px; font-size:11px; margin-left:auto;">{{ unread }}</span>
+                {% endif %}
+            </a>
             <a href="{{ url_for('product.export_excel') }}" class="nav-link">
                 <span class="nav-icon">📥</span> Export Excel
             </a>
+            <a href="/dashboard/sales" class="nav-link {% if request.endpoint == 'dashboard.sales_dashboard' %}active{% endif %}">
+                <span class="nav-icon">📊</span> Sales Dashboard
+            </a>
+            <a href="{{ url_for('report.sales_report') }}" class="nav-link {% if request.endpoint == 'report.sales_report' %}active{% endif %}">
+                <span class="nav-icon">📋</span> Sales Report
+            </a>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.index') }}" class="nav-link {% if request.endpoint and 'admin' in request.endpoint %}active{% endif %}">
+                <span class="nav-icon">🛡️</span> Admin Panel
+            </a>
+            {% endif %}
         </nav>
 
         <div class="sidebar-footer">
             <a href="{{ url_for('auth.profile') }}" class="user-info" style="color: inherit; text-decoration: none; display: flex; width: 100%;">
-                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" 
+                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}"
                      alt="Avatar" class="user-avatar" style="object-fit: cover;"
                      onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.name | urlencode }}&background=4f8ef7&color=fff'">
                 <div class="user-details">
@@ -64,12 +82,321 @@
 
 </div>
 
+<!-- ============ Global Chat Modal (Messenger-style) ============ -->
+<div id="chatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:1000;">
+    <div style="background:var(--card-bg, #1e1e2d); border-radius:12px; width:90%; max-width:480px; height:80vh; max-height:600px; display:flex; flex-direction:column; overflow:hidden;">
+
+        <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border-color, #2a2a3a);">
+            <img id="chatAvatar" style="width:34px; height:34px; border-radius:50%; object-fit:cover;">
+            <span id="chatName" style="font-weight:600;"></span>
+            <button type="button" onclick="closeThread()" style="margin-left:auto; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">✕</button>
+        </div>
+
+        <div id="chatMessages" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <p style="text-align:center; color:var(--text-muted); font-size:13px;">Loading...</p>
+        </div>
+
+        <div style="padding:12px 16px; border-top:1px solid var(--border-color, #2a2a3a); display:flex; gap:8px;">
+            <input id="chatInput" type="text" placeholder="Type a message..."
+                   style="flex:1; padding:10px 12px; border-radius:20px; border:1px solid var(--border-color, #333); background:var(--input-bg, #11121a); color:inherit;"
+                   onkeydown="if(event.key==='Enter') sendThreadMessage();">
+            <button type="button" id="chatSendBtn" onclick="sendThreadMessage()"
+                    style="background:#4f8ef7; color:white; border:none; border-radius:20px; padding:0 18px; font-weight:600; cursor:pointer;">Send</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ Global Buy / Payment Modal ============ -->
+<div id="buyModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:1000;">
+    <div style="background:var(--card-bg, #1e1e2d); border-radius:12px; padding:24px; width:90%; max-width:380px;">
+        <h3 style="margin:0 0 4px 0;">💳 Pay for <span id="buyProductName"></span></h3>
+        <div id="modal-error-msg" style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#f87171; padding:10px; border-radius:8px; text-align:center; font-size:13px; font-weight:500; margin-bottom:12px;"></div>      
+        <p style="margin:0 0 16px 0; font-size:14px; color:var(--text-muted);">Amount: <span id="buyProductPrice" style="color:var(--accent); font-weight:700;"></span></p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+            <button type="button" onclick="selectPaymentMethod('bkash')" id="btn-bkash"
+                    style="padding:12px; background:rgba(226,0,116,0.1); border:2px solid transparent; border-radius:8px; color:#e20074; font-weight:600; cursor:pointer;">
+                📱 bKash
+            </button>
+            <button type="button" onclick="selectPaymentMethod('card')" id="btn-card"
+                    style="padding:12px; background:rgba(79,142,247,0.1); border:2px solid transparent; border-radius:8px; color:var(--accent); font-weight:600; cursor:pointer;">
+                💳 Card
+            </button>
+        </div>
+
+        <div id="form-bkash" style="display:none;">
+            <div class="form-group">
+                <label>bKash Number</label>
+                <input type="text" id="bkash-number" placeholder="01XXXXXXXXX" maxlength="11">
+            </div>
+            <div class="form-group">
+                <label>Transaction ID</label>
+                <input type="text" id="bkash-txn" placeholder="e.g. 8N7A6B5C4D">
+            </div>
+            <button type="button" onclick="confirmPaymentMethod('bkash')" class="btn-primary btn-full">Confirm bKash Payment</button>
+        </div>
+
+        <div id="form-card" style="display:none;">
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" id="card-number" placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Expiry</label>
+                    <input type="text" id="card-expiry" placeholder="MM/YY" maxlength="5">
+                </div>
+                <div class="form-group">
+                    <label>CVV</label>
+                    <input type="text" id="card-cvv" placeholder="XXX" maxlength="3">
+                </div>
+            </div>
+            <button type="button" onclick="confirmPaymentMethod('card')" class="btn-primary btn-full">Confirm Card Payment</button>
+        </div>
+
+        <button type="button" onclick="closeBuyModal()" class="btn-cancel" style="width:100%; margin-top:8px;">Cancel</button>
+    </div>
+</div>
+
+<script>
+// ============ Chat (Messenger-style) ============
+let currentOtherId = null;
+let currentProductId = null;
+
+async function openThread(otherId, name, avatarUrl, forceProductId) {
+    currentOtherId = otherId;
+    document.getElementById('chatName').textContent = name;
+    document.getElementById('chatAvatar').src = avatarUrl;
+    document.getElementById('chatAvatar').onerror = function() {
+        this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4f8ef7&color=fff`;
+    };
+    document.getElementById('chatMessages').innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px;">Loading...</p>';
+    document.getElementById('chatInput').value = '';
+    document.getElementById('chatModalOverlay').style.display = 'flex';
+
+    try {
+        const res = await fetch(`/inbox/thread/${otherId}`);
+        const data = await res.json();
+        currentProductId = forceProductId || data.last_product_id;
+        renderMessages(data.messages);
+
+        const row = document.querySelector(`.conv-row[data-other-id="${otherId}"]`);
+        if (row) {
+            const badge = row.querySelector('.unread-badge');
+            if (badge) badge.remove();
+        }
+    } catch (err) {
+        document.getElementById('chatMessages').innerHTML = '<p style="text-align:center; color:#ef4444; font-size:13px;">Failed to load messages.</p>';
+    }
+}
+
+function closeThread() {
+    document.getElementById('chatModalOverlay').style.display = 'none';
+    currentOtherId = null;
+    currentProductId = null;
+}
+
+function renderMessages(messages) {
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = '';
+
+    if (messages.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px;">No messages yet.</p>';
+        return;
+    }
+
+    messages.forEach(m => {
+        const wrap = document.createElement('div');
+        wrap.style.alignSelf = m.is_mine ? 'flex-end' : 'flex-start';
+        wrap.style.maxWidth = '75%';
+
+        if (m.product_name) {
+            const tag = document.createElement('div');
+            tag.style.fontSize = '11px';
+            tag.style.color = 'var(--text-muted)';
+            tag.style.marginBottom = '2px';
+            tag.style.textAlign = m.is_mine ? 'right' : 'left';
+            tag.textContent = `📦 ${m.product_name}`;
+            wrap.appendChild(tag);
+        }
+
+        const bubble = document.createElement('div');
+        bubble.style.padding = '8px 12px';
+        bubble.style.borderRadius = '14px';
+        bubble.style.fontSize = '14px';
+        bubble.style.background = m.is_mine ? '#4f8ef7' : 'var(--input-bg, #2a2a3a)';
+        bubble.style.color = m.is_mine ? '#fff' : 'inherit';
+        bubble.textContent = m.content;
+        wrap.appendChild(bubble);
+
+        const time = document.createElement('div');
+        time.style.fontSize = '10px';
+        time.style.color = 'var(--text-muted)';
+        time.style.marginTop = '2px';
+        time.style.textAlign = m.is_mine ? 'right' : 'left';
+        time.textContent = m.created_at;
+        wrap.appendChild(time);
+
+        container.appendChild(wrap);
+    });
+
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendThreadMessage() {
+    const input = document.getElementById('chatInput');
+    const content = input.value.trim();
+    if (!content || !currentOtherId) return;
+
+    if (!currentProductId) {
+        alert('No product context found for this conversation.');
+        return;
+    }
+
+    const btn = document.getElementById('chatSendBtn');
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/inbox/send/${currentOtherId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content, product_id: currentProductId })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            input.value = '';
+            const container = document.getElementById('chatMessages');
+            const placeholder = container.querySelector('p');
+            if (placeholder) placeholder.remove();
+
+            const wrap = document.createElement('div');
+            wrap.style.alignSelf = 'flex-end';
+            wrap.style.maxWidth = '75%';
+
+            const bubble = document.createElement('div');
+            bubble.style.padding = '8px 12px';
+            bubble.style.borderRadius = '14px';
+            bubble.style.fontSize = '14px';
+            bubble.style.background = '#4f8ef7';
+            bubble.style.color = '#fff';
+            bubble.textContent = data.message.content;
+            wrap.appendChild(bubble);
+
+            const time = document.createElement('div');
+            time.style.fontSize = '10px';
+            time.style.color = 'var(--text-muted)';
+            time.style.marginTop = '2px';
+            time.style.textAlign = 'right';
+            time.textContent = data.message.created_at;
+            wrap.appendChild(time);
+
+            container.appendChild(wrap);
+            container.scrollTop = container.scrollHeight;
+
+            const row = document.querySelector(`.conv-row[data-other-id="${currentOtherId}"]`);
+            if (row) {
+                const previewEl = row.querySelector('div > div:last-child');
+                if (previewEl) previewEl.textContent = `You: ${data.message.content}`;
+                const list = document.getElementById('convList');
+                if (list) list.prepend(row);
+            }
+        } else {
+            alert(data.message || 'Failed to send.');
+        }
+    } catch (err) {
+        alert('Network error. Please try again.');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('chatModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'chatModalOverlay') closeThread();
+});
+
+// ============ Buy / Payment ============
+let currentBuyForm = null;
+
+function openBuyModal(formEl, productName, price) {
+    currentBuyForm = formEl;
+    document.getElementById('buyProductName').textContent = productName;
+    document.getElementById('buyProductPrice').textContent =
+        '৳' + Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    document.getElementById('form-bkash').style.display = 'none';
+    document.getElementById('form-card').style.display = 'none';
+    document.getElementById('btn-bkash').style.borderColor = 'transparent';
+    document.getElementById('btn-card').style.borderColor = 'transparent';
+    document.getElementById('bkash-number').value = '';
+    document.getElementById('bkash-txn').value = '';
+    document.getElementById('card-number').value = '';
+    document.getElementById('card-expiry').value = '';
+    document.getElementById('card-cvv').value = '';
+
+    document.getElementById('buyModalOverlay').style.display = 'flex';
+}
+
+function closeBuyModal() {
+    document.getElementById('buyModalOverlay').style.display = 'none';
+    currentBuyForm = null;
+}
+
+function selectPaymentMethod(type) {
+    document.getElementById('form-bkash').style.display = type === 'bkash' ? 'block' : 'none';
+    document.getElementById('form-card').style.display = type === 'card' ? 'block' : 'none';
+    document.getElementById('btn-bkash').style.borderColor = type === 'bkash' ? '#e20074' : 'transparent';
+    document.getElementById('btn-card').style.borderColor = type === 'card' ? 'var(--accent)' : 'transparent';
+}
+
+function confirmPaymentMethod(type) {
+    let valid = false;
+    if (type === 'bkash') {
+        const num = document.getElementById('bkash-number').value;
+        const txn = document.getElementById('bkash-txn').value;
+        valid = num.length === 11 && txn.length > 5;
+    } else {
+        const num = document.getElementById('card-number').value.replace(/\s/g, '');
+        const exp = document.getElementById('card-expiry').value;
+        const cvv = document.getElementById('card-cvv').value;
+        valid = num.length === 16 && exp.length === 5 && cvv.length === 3;
+    }
+
+    if (!valid) {
+        const errorEl = document.getElementById('modal-error-msg');
+        errorEl.textContent = 'Please fill in all payment details correctly!';
+        errorEl.style.display = 'block';
+        setTimeout(() => { errorEl.style.display = 'none'; }, 4000);
+        return;
+    }
+
+    if (!currentBuyForm) return;
+
+    if (confirm('Confirm payment of ' + document.getElementById('buyProductPrice').textContent + '?')) {
+        currentBuyForm.querySelector('input[name="payment_method"]').value = type;
+        currentBuyForm.submit();
+    }
+}
+
+document.getElementById('buyModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'buyModalOverlay') closeBuyModal();
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const cardNumberInput = document.getElementById('card-number');
+    if (cardNumberInput) {
+        cardNumberInput.addEventListener('input', function () {
+            this.value = this.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
+        });
+    }
+});
+</script>
+
 {% else %}
     {% block auth_content %}{% endblock %}
 {% endif %}
 
 <script>
-    // Auto dismiss flash messages after 4s
     setTimeout(() => {
         document.querySelectorAll('.flash').forEach(el => el.remove());
     }, 4000);

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 0; }
+        .email-container { max-width: 480px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
+        .header { background-color: #0f172a; padding: 32px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 12px 0 0 0; font-size: 24px; font-weight: 600; letter-spacing: 0.5px; }
+        .content { padding: 32px 24px; text-align: center; }
+        .greeting { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #0f172a; text-align: left; }
+        .instruction { font-size: 14px; color: #64748b; margin-bottom: 24px; text-align: left; line-height: 1.5; }
+        .otp-box { background-color: #f1f5f9; border: 2px dashed #cbd5e1; padding: 14px 28px; border-radius: 8px; display: inline-block; margin: 16px 0; }
+        .otp-code { font-size: 32px; font-weight: 700; color: #2563eb; letter-spacing: 8px; padding-left: 8px; margin: 0; }
+        .expiry-text { font-size: 13px; color: #ef4444; font-weight: 500; margin-top: 8px; margin-bottom: 24px; }
+        .warning { font-size: 12px; color: #94a3b8; margin-top: 24px; line-height: 1.6; text-align: left; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <span style="font-size: 36px;">📧</span>
+            <h1>InvenTrack</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">Hello User,</div>
+            <div class="instruction">
+                Thank you for signing up with InvenTrack. To complete your registration and activate your account, please use the One-Time Password (OTP) provided below:
+            </div>
+            
+            <div class="otp-box">
+                <div class="otp-code">{{ otp }}</div>
+            </div>
+            
+            <div class="expiry-text">
+                ⚠️ This verification code is valid for 10 minutes.
+            </div>
+            <div class="warning">
+                <strong>Didn't request this?</strong> If you did not create an account on InvenTrack, you can safely ignore this email.
+            </div>
+        </div>
+        <div class="footer">
+            &copy; 2026 InvenTrack. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

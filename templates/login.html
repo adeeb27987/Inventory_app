@@ -27,29 +27,36 @@
         {% endwith %}
 
         <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <div class="input-icon-wrapper">
-                    <span class="field-icon material-icons">mail_outline</span>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" required>
+            <!-- ইমেইল ফিল্ড (আইকন ভেতরে সেট করা হয়েছে) -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="email" style="font-size: 13px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 6px;">Email Address</label>
+                <div class="input-icon-wrapper" style="position: relative; width: 100%; display: flex; align-items: center;">
+                    <span class="field-icon material-icons" style="position: absolute; left: 12px; pointer-events: none; font-size: 18px; color: var(--text-muted);">mail_outline</span>
+                    <input type="text" id="email" name="email" placeholder="Enter email or admin" required
+                           style="width: 100%; padding: 11px 14px 11px 38px; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 14px; outline: none;">
                 </div>
             </div>
 
-            <div class="form-group">
-                <div class="label-row">
-                    <label for="password">Password</label>
-                    <a href="#" class="forgot-link">Forgot password?</a>
+            <!-- পাসওয়ার্ড ফিল্ড (লক এবং চোখ বাটন দুটোই ভেতরে সেট করা হয়েছে) -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <div class="label-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label for="password" style="font-size: 13px; font-weight: 500; color: var(--text-muted);">Password</label>
+                    <a href="#" class="forgot-link" style="font-size: 13px; color: var(--accent);">Forgot password?</a>
                 </div>
-                <div class="input-icon-wrapper">
-                    <span class="field-icon">🔒</span>
-                    <input type="password" id="password" name="password" placeholder="••••••••" required>
-                    <button type="button" class="password-toggle-btn" onclick="togglePassword()">👁️</button>
+                <div class="input-icon-wrapper" style="position: relative; width: 100%; display: flex; align-items: center;">
+                    <span class="field-icon" style="position: absolute; left: 12px; pointer-events: none; display: flex; align-items: center;">🔒</span>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required
+                           style="width: 100%; padding: 11px 40px 11px 38px; box-sizing: border-box; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 14px; outline: none;">
+                    <button type="button" class="password-toggle-btn" onclick="togglePassword()"
+                            style="position: absolute; right: 12px; background: none; border: none; padding: 0; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;">
+                        👁️
+                    </button>
                 </div>
             </div>
 
-            <div class="form-options-row">
-                <label class="custom-checkbox">
-                    <input type="checkbox" name="remember">
+            <div class="form-options-row" style="margin-bottom: 20px;">
+                <label class="custom-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-muted);">
+                    <input type="checkbox" name="remember" style="cursor: pointer;">
                     <span>Remember me for 30 days</span>
                 </label>
             </div>
@@ -57,8 +64,8 @@
             <button type="submit" class="btn-primary btn-full">Sign In →</button>
         </form>
 
-        <p class="auth-footer">
-            Don't have an account? <a href="{{ url_for('auth.register') }}">Create an account</a>
+        <p class="auth-footer" style="text-align: center; margin-top: 20px; font-size: 14px;">
+            Don't have an account? <a href="{{ url_for('auth.register') }}" style="color: var(--accent); text-decoration: none;">Create an account</a>
         </p>
     </div>
 </div>
